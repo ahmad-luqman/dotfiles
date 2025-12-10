@@ -92,6 +92,19 @@ else
     log_message "npm not found, skipping npm global updates"
 fi
 
+# Cleanup GitHub Actions runner diagnostic logs
+log_message "Checking GitHub Actions runner logs..."
+log_detailed "--- GitHub Actions Log Cleanup ---"
+
+if [ -d "$HOME/actions-runner/_diag" ]; then
+    log_message "Cleaning GitHub Actions runner logs older than 7 days..."
+    DELETED_COUNT=$(find "$HOME/actions-runner/_diag" -type f -mtime +7 -delete -print 2>/dev/null | wc -l)
+    log_message "✓ Deleted $DELETED_COUNT GitHub Actions log file(s)"
+    log_detailed "GitHub Actions cleanup deleted $DELETED_COUNT files"
+else
+    log_message "GitHub Actions runner directory not found, skipping cleanup"
+fi
+
 # Update specific tools if they exist
 TOOLS=("claude" "codex" "gemini" "copilot")
 log_detailed "--- Specific Tool Updates ---"

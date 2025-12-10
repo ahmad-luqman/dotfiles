@@ -61,6 +61,7 @@ bash setup-update-cron.sh --custom "0 */6 * * *"
 - ✅ Homebrew cleanup (removes old versions)
 - ✅ NPM global packages
 - ✅ Specific tools (claude, codex, gemini, copilot)
+- ✅ GitHub Actions runner logs (deletes logs older than 7 days)
 
 ### Example Output
 ```
@@ -71,6 +72,9 @@ bash setup-update-cron.sh --custom "0 */6 * * *"
 [2025-12-10 10:29:38] Checking npm global packages...
 [2025-12-10 10:29:38] ✓ Updated: npm: corepack
 [2025-12-10 10:29:38] ✓ Updated: npm: npm
+[2025-12-10 10:29:38] Checking GitHub Actions runner logs...
+[2025-12-10 10:29:38] Cleaning GitHub Actions runner logs older than 7 days...
+[2025-12-10 10:29:38] ✓ Deleted 127 GitHub Actions log file(s)
 [2025-12-10 10:29:38] === System Update Completed ===
 [2025-12-10 10:29:38] Summary: Updated 2 package(s)
 ```
@@ -206,4 +210,4 @@ These are personal dotfiles, but feel free to fork and customize for your own us
 ---
 
 **Created**: 2025-12-10
-**Last Updated**: 2025-12-10
+**Last Updated**: 2025-12-10 (Added GitHub Actions log cleanup)
