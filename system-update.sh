@@ -4,6 +4,28 @@
 # Updates Homebrew packages and global npm packages
 # Logs all updates with timestamps
 
+# Setup PATH for cron environment
+# Cron runs with minimal environment, so we need to set up PATH explicitly
+export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+# Add Homebrew to PATH (supports both Apple Silicon and Intel)
+if [ -d "/opt/homebrew/bin" ]; then
+    # Apple Silicon Mac
+    export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+elif [ -d "/usr/local/bin" ]; then
+    # Intel Mac or Linux
+    export PATH="/usr/local/bin:/usr/local/sbin:$PATH"
+fi
+
+# Setup nvm for npm access (if available)
+# This is needed because npm is installed via nvm, not system-wide
+if [ -s "$HOME/.nvm/nvm.sh" ]; then
+    export NVM_DIR="$HOME/.nvm"
+    \. "$NVM_DIR/nvm.sh"
+    # Load default node version
+    nvm use default 2>/dev/null || nvm use node 2>/dev/null || true
+fi
+
 # Configuration
 LOG_DIR="${HOME}/.update-logs"
 LOG_FILE="${LOG_DIR}/updates.log"

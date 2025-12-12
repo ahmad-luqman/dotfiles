@@ -1,0 +1,81 @@
+# Cursor Rules for dotfiles Repository
+
+## Repository Overview
+This repository contains personal automation and utility scripts for macOS system maintenance and development environment management.
+
+## Key Scripts
+
+### system-update.sh
+- Main system update script that updates Homebrew and npm packages
+- Runs via cron job every 6 hours
+- Logs all updates to `~/.update-logs/`
+- **Important**: Script must set up PATH for cron environment (Homebrew, npm, nvm)
+
+### setup-update-cron.sh
+- Helper script to configure cron jobs for system updates
+- Supports daily, weekly, and custom schedules
+- Creates cron entries that redirect output to log files
+
+### view-update-logs.sh
+- Log viewer with multiple viewing modes (latest, full, detailed, stats, watch)
+- Provides statistics and summaries of update history
+
+## Coding Standards
+
+### Bash Scripting
+- Use `#!/bin/bash` shebang
+- Always set up PATH explicitly for cron compatibility
+- Use `command -v` to check if commands exist before using them
+- Log all operations with timestamps
+- Handle errors gracefully with `|| true` where appropriate
+- Use arrays for tracking multiple items (e.g., updated packages)
+
+### Path Setup for Cron
+- Cron jobs run with minimal environment
+- Always export PATH with Homebrew paths:
+  - `/opt/homebrew/bin` (Apple Silicon)
+  - `/usr/local/bin` (Intel Mac)
+- Handle nvm/node paths if npm is needed
+- Source nvm.sh if available for npm access
+
+### Logging
+- Use consistent timestamp format: `[YYYY-MM-DD HH:MM:SS]`
+- Log to both main log (`updates.log`) and detailed log (`updates-detailed.log`)
+- Include summary at end of each run
+- Track updated packages in array for summary
+
+### Error Handling
+- Check if commands exist before using: `if command -v cmd &> /dev/null; then`
+- Use `2>&1` to capture stderr
+- Use `|| true` to prevent script failure on non-critical errors
+- Log warnings with `⚠` prefix
+
+## File Locations
+- Scripts are installed to `~/bin/`
+- Logs are stored in `~/.update-logs/`
+- Cron jobs reference `/Users/ahmadluqman/bin/system-update.sh`
+
+## Common Issues
+
+### Cron PATH Issues
+- **Problem**: `brew: command not found` in cron logs
+- **Solution**: Export PATH at start of script with Homebrew paths
+- **Solution**: Source nvm.sh if npm is needed
+
+### npm Not Found in Cron
+- **Problem**: npm not available in cron environment
+- **Solution**: Source `~/.nvm/nvm.sh` before using npm
+- **Solution**: Check with `command -v npm` before running npm commands
+
+## Testing
+- Always test scripts manually before relying on cron
+- Check logs in `~/.update-logs/` after manual runs
+- Verify PATH is set correctly by logging `$PATH` in detailed log
+- Test cron job by running script directly with minimal environment
+
+## Documentation
+- Keep README.md updated with current status
+- Document all script options and usage
+- Include troubleshooting section for common issues
+- Update QUICK_START.md with current cron schedule
+
