@@ -112,25 +112,52 @@ log_detailed "--- NPM Global Updates ---"
 
 # Check if npm is available
 if command -v npm &> /dev/null; then
-    # Get list of outdated global packages
-    NPM_OUTDATED=$(npm outdated -g --json 2>/dev/null || echo "{}")
+    # Get current versions of all global packages (excluding npm itself and local symlinks)
+    NPM_GLOBALS=$(npm list -g --depth=0 --json 2>/dev/null || echo "{}")
 
-    if [ -n "$NPM_OUTDATED" ] && [ "$NPM_OUTDATED" != "{}" ]; then
-        echo "$NPM_OUTDATED" >> "$DETAILED_LOG"
-        log_message "Updating npm global packages..."
-        npm update -g >> "$DETAILED_LOG" 2>&1 || log_message "⚠ npm update completed with warnings"
+    if command -v jq &> /dev/null; then
+        while IFS= read -r pkg; do
+            [ -z "$pkg" ] && continue
+            # Skip npm itself (updated separately) and local symlinked packages
+            [ "$pkg" = "npm" ] && continue
+            resolved=$(echo "$NPM_GLOBALS" | jq -r ".dependencies[\"$pkg\"].resolved // empty" 2>/dev/null)
+            [[ "$resolved" == "file:"* ]] && continue
 
-        # Try to extract updated packages
-        if command -v jq &> /dev/null; then
-            while IFS= read -r package; do
-                if [ -n "$package" ]; then
-                    UPDATED_PACKAGES+=("npm: $package")
-                    log_message "✓ Updated: npm: $package"
+            current=$(echo "$NPM_GLOBALS" | jq -r ".dependencies[\"$pkg\"].version // empty" 2>/dev/null)
+            latest=$(npm view "$pkg" version 2>/dev/null || echo "")
+            [ -z "$latest" ] && continue
+
+            if [ "$current" != "$latest" ]; then
+                log_message "Upgrading npm: $pkg ($current → $latest)..."
+                if npm install -g "${pkg}@latest" >> "$DETAILED_LOG" 2>&1; then
+                    UPDATED_PACKAGES+=("npm: $pkg ($current → $latest)")
+                    log_message "✓ Updated: npm: $pkg → $latest"
+                else
+                    log_message "⚠ Failed to update npm: $pkg"
                 fi
-            done < <(echo "$NPM_OUTDATED" | jq -r 'keys[]' 2>/dev/null || true)
-        fi
+            fi
+        done < <(echo "$NPM_GLOBALS" | jq -r '.dependencies | keys[]' 2>/dev/null || true)
     else
-        log_message "No npm global package updates available"
+        # Fallback without jq: just run npm update -g
+        log_message "jq not found, falling back to npm update -g..."
+        npm update -g >> "$DETAILED_LOG" 2>&1 || log_message "⚠ npm update completed with warnings"
+    fi
+
+    # Update npm itself last
+    CURRENT_NPM=$(npm --version 2>/dev/null)
+    LATEST_NPM=$(npm view npm version 2>/dev/null || echo "")
+    if [ -n "$LATEST_NPM" ] && [ "$CURRENT_NPM" != "$LATEST_NPM" ]; then
+        log_message "Upgrading npm ($CURRENT_NPM → $LATEST_NPM)..."
+        if npm install -g npm@latest >> "$DETAILED_LOG" 2>&1; then
+            UPDATED_PACKAGES+=("npm ($CURRENT_NPM → $LATEST_NPM)")
+            log_message "✓ Updated: npm → $LATEST_NPM"
+        else
+            log_message "⚠ Failed to update npm"
+        fi
+    fi
+
+    if ! printf '%s\n' "${UPDATED_PACKAGES[@]}" | grep -q "^npm:"; then
+        log_message "All npm global packages are up to date"
     fi
 else
     log_message "npm not found, skipping npm global updates"
