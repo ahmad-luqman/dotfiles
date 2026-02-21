@@ -21,13 +21,10 @@ Complete automation solution for managing **Homebrew** and **npm** package updat
 
 ### 1. Setup
 ```bash
-# Copy scripts to ~/bin
-mkdir -p ~/bin
-cp system-update.sh setup-update-cron.sh view-update-logs.sh ~/bin/
-chmod +x ~/bin/*.sh
-
-# Or add this repo to PATH
-export PATH="$PATH:/path/to/dotfiles"
+# Copy scripts to ~/scripts
+mkdir -p ~/scripts
+cp system-update.sh setup-update-cron.sh view-update-logs.sh ~/scripts/
+chmod +x ~/scripts/*.sh
 ```
 
 ### 2. Run Initial Update
@@ -61,7 +58,7 @@ bash setup-update-cron.sh --custom "0 */6 * * *"
 - ✅ Homebrew cleanup (removes old versions)
 - ✅ NPM global packages
 - ✅ Specific tools (claude, codex, gemini, copilot)
-- ✅ GitHub Actions runner logs (deletes logs older than 7 days)
+- ✅ GitHub Actions runner cleanup (logs, stale versions, update artifacts, installer archives)
 
 ### Example Output
 ```
@@ -151,16 +148,16 @@ update-help        # Show help
 
 ### Scripts not found
 ```bash
-chmod +x ~/bin/system-update.sh ~/bin/setup-update-cron.sh ~/bin/view-update-logs.sh
+chmod +x ~/scripts/system-update.sh ~/scripts/setup-update-cron.sh ~/scripts/view-update-logs.sh
 ```
 
 ### Cron not running
 ```bash
 # Check if script is executable
-ls -l ~/bin/system-update.sh
+ls -l ~/scripts/system-update.sh
 
 # Test manually
-~/bin/system-update.sh
+~/scripts/system-update.sh
 
 # Check cron logs
 log stream --predicate 'process == "cron"' --level debug
@@ -172,7 +169,7 @@ log stream --predicate 'process == "cron"' --level debug
 mkdir -p ~/.update-logs
 
 # Test script
-~/bin/system-update.sh
+~/scripts/system-update.sh
 
 # Verify logs
 ls -lh ~/.update-logs/
@@ -210,4 +207,4 @@ These are personal dotfiles, but feel free to fork and customize for your own us
 ---
 
 **Created**: 2025-12-10
-**Last Updated**: 2025-12-10 (Added GitHub Actions log cleanup)
+**Last Updated**: 2026-02-21 (Log rotation, multi-runner cleanup, scripts moved to ~/scripts)

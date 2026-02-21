@@ -30,22 +30,47 @@ fi
 LOG_DIR="${HOME}/.update-logs"
 LOG_FILE="${LOG_DIR}/updates.log"
 DETAILED_LOG="${LOG_DIR}/updates-detailed.log"
-TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
-DATE_SLUG=$(date '+%Y-%m-%d')
+LOG_MAX_SIZE_KB=512  # Rotate logs when they exceed this size
+LOG_KEEP_ROTATED=2   # Number of rotated files to keep (.1, .2)
 
 # Create log directory if it doesn't exist
 mkdir -p "$LOG_DIR"
 
+# Rotate a log file if it exceeds LOG_MAX_SIZE_KB
+rotate_log() {
+    local file="$1"
+    [ ! -f "$file" ] && return
+    local size_kb=$(du -k "$file" | cut -f1)
+    if [ "$size_kb" -gt "$LOG_MAX_SIZE_KB" ]; then
+        # Shift old rotations
+        for i in $(seq $((LOG_KEEP_ROTATED - 1)) -1 1); do
+            [ -f "${file}.${i}" ] && mv "${file}.${i}" "${file}.$((i + 1))"
+        done
+        mv "$file" "${file}.1"
+        touch "$file"
+    fi
+}
+
+# Rotate all log files at start
+rotate_log "$LOG_FILE"
+rotate_log "$DETAILED_LOG"
+rotate_log "${LOG_DIR}/cron.log"
+rotate_log "${LOG_DIR}/weekly-summary.log"
+
 # Function to log messages
 log_message() {
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
     local message="$1"
-    echo "[${TIMESTAMP}] ${message}" | tee -a "$LOG_FILE"
+    echo "[${ts}] ${message}" | tee -a "$LOG_FILE"
 }
 
 # Function to log detailed output
 log_detailed() {
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
     local message="$1"
-    echo "[${TIMESTAMP}] ${message}" >> "$DETAILED_LOG"
+    echo "[${ts}] ${message}" >> "$DETAILED_LOG"
 }
 
 # Start logging
@@ -60,9 +85,6 @@ log_message "Checking Homebrew updates..."
 log_detailed "--- Homebrew Update ---"
 
 brew update >> "$DETAILED_LOG" 2>&1
-
-# Get outdated packages before upgrade
-OUTDATED=$(brew outdated --json=v2 2>/dev/null || echo "{}")
 
 # Upgrade all packages
 log_message "Upgrading Homebrew packages..."
@@ -114,17 +136,87 @@ else
     log_message "npm not found, skipping npm global updates"
 fi
 
-# Cleanup GitHub Actions runner diagnostic logs
-log_message "Checking GitHub Actions runner logs..."
-log_detailed "--- GitHub Actions Log Cleanup ---"
+# Cleanup all GitHub Actions runners
+log_message "Checking GitHub Actions runners..."
+log_detailed "--- GitHub Actions Runner Cleanup ---"
 
-if [ -d "$HOME/actions-runner/_diag" ]; then
-    log_message "Cleaning GitHub Actions runner logs older than 7 days..."
-    DELETED_COUNT=$(find "$HOME/actions-runner/_diag" -type f -mtime +7 -delete -print 2>/dev/null | wc -l)
-    log_message "✓ Deleted $DELETED_COUNT GitHub Actions log file(s)"
-    log_detailed "GitHub Actions cleanup deleted $DELETED_COUNT files"
-else
-    log_message "GitHub Actions runner directory not found, skipping cleanup"
+RUNNER_DIRS_FOUND=0
+FREED_GRAND_TOTAL=0
+
+for ACTIONS_DIR in "$HOME"/actions-runner*; do
+    [ ! -d "$ACTIONS_DIR" ] && continue
+    RUNNER_NAME=$(basename "$ACTIONS_DIR")
+    RUNNER_DIRS_FOUND=$((RUNNER_DIRS_FOUND + 1))
+    FREED_TOTAL=0
+
+    log_message "Cleaning $RUNNER_NAME..."
+
+    # 1. Clean diagnostic logs older than 7 days
+    if [ -d "$ACTIONS_DIR/_diag" ]; then
+        DELETED_COUNT=$(find "$ACTIONS_DIR/_diag" -type f -mtime +7 -delete -print 2>/dev/null | wc -l | tr -d ' ')
+        [ "$DELETED_COUNT" -gt 0 ] && log_message "  ✓ Deleted $DELETED_COUNT diagnostic log file(s)"
+    fi
+
+    # 2. Clean old runner version directories (bin.* and externals.*)
+    CURRENT_VERSION=$("$ACTIONS_DIR/config.sh" --version 2>/dev/null || echo "")
+    if [ -n "$CURRENT_VERSION" ]; then
+        for old_dir in "$ACTIONS_DIR"/bin.* "$ACTIONS_DIR"/externals.*; do
+            [ ! -d "$old_dir" ] && continue
+            dir_version=$(basename "$old_dir" | sed 's/^[^.]*\.//')
+            if [ "$dir_version" != "$CURRENT_VERSION" ]; then
+                old_size=$(du -sm "$old_dir" 2>/dev/null | cut -f1)
+                rm -rf "$old_dir"
+                FREED_TOTAL=$((FREED_TOTAL + old_size))
+                log_message "  ✓ Removed stale $(basename "$old_dir") (${old_size}MB)"
+            fi
+        done
+    fi
+
+    # 3. Clean stale _work/_update directory (leftover from runner self-updates)
+    if [ -d "$ACTIONS_DIR/_work/_update" ]; then
+        update_size=$(du -sm "$ACTIONS_DIR/_work/_update" 2>/dev/null | cut -f1)
+        rm -rf "$ACTIONS_DIR/_work/_update"
+        FREED_TOTAL=$((FREED_TOTAL + update_size))
+        log_message "  ✓ Removed stale _work/_update (${update_size}MB)"
+    fi
+
+    # 4. Clean _work/_temp (temporary job files older than 3 days)
+    if [ -d "$ACTIONS_DIR/_work/_temp" ]; then
+        find "$ACTIONS_DIR/_work/_temp" -type f -mtime +3 -delete 2>/dev/null
+    fi
+
+    # 5. Remove leftover runner tar.gz installer archives
+    for tarball in "$ACTIONS_DIR"/actions-runner-*.tar.gz; do
+        [ ! -f "$tarball" ] && continue
+        tar_size=$(du -sm "$tarball" 2>/dev/null | cut -f1)
+        rm -f "$tarball"
+        FREED_TOTAL=$((FREED_TOTAL + tar_size))
+        log_message "  ✓ Removed installer archive $(basename "$tarball") (${tar_size}MB)"
+    done
+
+    # 6. Clean hostedtoolcache (cached tool versions, safe to remove)
+    if [ -d "$ACTIONS_DIR/hostedtoolcache" ]; then
+        cache_size=$(du -sm "$ACTIONS_DIR/hostedtoolcache" 2>/dev/null | cut -f1)
+        if [ "$cache_size" -gt 0 ] 2>/dev/null; then
+            rm -rf "$ACTIONS_DIR/hostedtoolcache"
+            mkdir -p "$ACTIONS_DIR/hostedtoolcache"
+            FREED_TOTAL=$((FREED_TOTAL + cache_size))
+            log_message "  ✓ Cleared hostedtoolcache (${cache_size}MB)"
+        fi
+    fi
+
+    if [ "$FREED_TOTAL" -gt 0 ]; then
+        log_message "  $RUNNER_NAME: freed ~${FREED_TOTAL}MB"
+    else
+        log_message "  $RUNNER_NAME: clean"
+    fi
+    FREED_GRAND_TOTAL=$((FREED_GRAND_TOTAL + FREED_TOTAL))
+done
+
+if [ "$RUNNER_DIRS_FOUND" -eq 0 ]; then
+    log_message "No GitHub Actions runner directories found, skipping cleanup"
+elif [ "$FREED_GRAND_TOTAL" -gt 0 ]; then
+    log_message "Total runner cleanup freed ~${FREED_GRAND_TOTAL}MB across $RUNNER_DIRS_FOUND runner(s)"
 fi
 
 # Update specific tools if they exist
@@ -160,10 +252,10 @@ log_message "  Main log: $LOG_FILE"
 log_message "  Detailed log: $DETAILED_LOG"
 log_message ""
 
-# Also write to a weekly summary file
+# Also write to summary file
 WEEKLY_LOG="${LOG_DIR}/weekly-summary.log"
 echo "" >> "$WEEKLY_LOG"
-echo "=== $TIMESTAMP ===" >> "$WEEKLY_LOG"
+echo "=== $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$WEEKLY_LOG"
 echo "Updated $PACKAGE_COUNT package(s)" >> "$WEEKLY_LOG"
 for package in "${UPDATED_PACKAGES[@]}"; do
     echo "  - $package" >> "$WEEKLY_LOG"

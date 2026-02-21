@@ -10,22 +10,22 @@
 
 ### Run Updates Manually
 ```bash
-~/bin/system-update.sh
+~/scripts/system-update.sh
 ```
 
 ### View Logs
 ```bash
 # Latest updates
-~/bin/view-update-logs.sh latest
+~/scripts/view-update-logs.sh latest
 
 # Statistics
-~/bin/view-update-logs.sh stats
+~/scripts/view-update-logs.sh stats
 
 # Watch in real-time
-~/bin/view-update-logs.sh watch
+~/scripts/view-update-logs.sh watch
 
 # Full detailed output
-~/bin/view-update-logs.sh detailed
+~/scripts/view-update-logs.sh detailed
 ```
 
 ### Manage Cron
@@ -37,19 +37,19 @@ crontab -l
 crontab -e
 
 # Change to daily updates
-bash ~/bin/setup-update-cron.sh --daily
+bash ~/scripts/setup-update-cron.sh --daily
 
 # Change to weekly
-bash ~/bin/setup-update-cron.sh --weekly
+bash ~/scripts/setup-update-cron.sh --weekly
 
 # Custom schedule
-bash ~/bin/setup-update-cron.sh --custom "0 */6 * * *"
+bash ~/scripts/setup-update-cron.sh --custom "0 */6 * * *"
 ```
 
 ## 📁 File Locations
 
 ```
-~/bin/
+~/scripts/
 ├── system-update.sh              ← Main update script
 ├── setup-update-cron.sh         ← Cron configuration
 ├── view-update-logs.sh          ← Log viewer
@@ -123,12 +123,12 @@ tail -f ~/.update-logs/updates.log
 
 **Test manually:**
 ```bash
-~/bin/system-update.sh
+~/scripts/system-update.sh
 ```
 
 **For more help:**
 ```bash
-cat ~/bin/UPDATE_SYSTEM_README.md
+cat ~/scripts/UPDATE_SYSTEM_README.md
 ```
 
 ---

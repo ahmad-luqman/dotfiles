@@ -20,7 +20,7 @@ Performs all system updates and logs results.
 /Users/ahmadluqman/bin/system-update.sh
 
 # Or run directly
-~/bin/system-update.sh
+~/scripts/system-update.sh
 ```
 
 ### 2. `setup-update-cron.sh` - Cron Configuration Helper
@@ -30,13 +30,13 @@ Sets up automated scheduling for the update script.
 
 ```bash
 # Weekly updates (Sunday 2 AM) - DEFAULT
-bash ~/bin/setup-update-cron.sh --weekly
+bash ~/scripts/setup-update-cron.sh --weekly
 
 # Daily updates (2 AM every day)
-bash ~/bin/setup-update-cron.sh --daily
+bash ~/scripts/setup-update-cron.sh --daily
 
 # Custom schedule (using cron expression)
-bash ~/bin/setup-update-cron.sh --custom "0 3 * * 0"
+bash ~/scripts/setup-update-cron.sh --custom "0 3 * * 0"
 ```
 
 **Cron Expression Format:** `minute hour day month weekday`
@@ -80,16 +80,16 @@ view-update-logs.sh help
 
 ### Step 1: Run Initial Update
 ```bash
-~/bin/system-update.sh
+~/scripts/system-update.sh
 ```
 
 ### Step 2: Set Up Cron Job
 ```bash
 # For weekly updates (recommended)
-bash ~/bin/setup-update-cron.sh --weekly
+bash ~/scripts/setup-update-cron.sh --weekly
 
 # Or daily updates
-bash ~/bin/setup-update-cron.sh --daily
+bash ~/scripts/setup-update-cron.sh --daily
 ```
 
 ### Step 3: Verify Installation
@@ -129,7 +129,7 @@ view-update-logs.sh watch
 ### Example 1: Daily Updates
 ```bash
 # Set up daily updates at 2 AM
-bash ~/bin/setup-update-cron.sh --daily
+bash ~/scripts/setup-update-cron.sh --daily
 
 # Verify
 crontab -l | grep system-update
@@ -141,7 +141,7 @@ view-update-logs.sh latest
 ### Example 2: Weekly Updates on Mondays
 ```bash
 # Set up custom schedule for Mondays at 3 AM
-bash ~/bin/setup-update-cron.sh --custom "0 3 * * 1"
+bash ~/scripts/setup-update-cron.sh --custom "0 3 * * 1"
 
 # Verify
 crontab -l
@@ -153,7 +153,7 @@ view-update-logs.sh summary
 ### Example 3: Manual Update with Logging
 ```bash
 # Run update manually
-~/bin/system-update.sh
+~/scripts/system-update.sh
 
 # Check what was updated
 view-update-logs.sh latest
@@ -202,16 +202,16 @@ Edit crontab and add `#` at the start of the line:
 
 ### Cron Job Not Running
 1. Check if cron is enabled: `launchctl list | grep cron`
-2. Verify script is executable: `ls -l ~/bin/system-update.sh`
+2. Verify script is executable: `ls -l ~/scripts/system-update.sh`
 3. Check log: `view-update-logs.sh cron`
 4. Ensure `HOMEBREW_NO_INSTALL_CLEANUP=1` is not set
 
 ### Permission Denied Error
 ```bash
 # Make scripts executable
-chmod +x ~/bin/system-update.sh
-chmod +x ~/bin/setup-update-cron.sh
-chmod +x ~/bin/view-update-logs.sh
+chmod +x ~/scripts/system-update.sh
+chmod +x ~/scripts/setup-update-cron.sh
+chmod +x ~/scripts/view-update-logs.sh
 ```
 
 ### Logs Not Being Created
@@ -220,7 +220,7 @@ chmod +x ~/bin/view-update-logs.sh
 mkdir -p ~/.update-logs
 
 # Test script
-~/bin/system-update.sh
+~/scripts/system-update.sh
 
 # Check if logs were created
 ls -lh ~/.update-logs/
@@ -249,13 +249,13 @@ MAILTO=your-email@example.com
 ### Custom Update Frequency
 ```bash
 # Every 6 hours
-bash ~/bin/setup-update-cron.sh --custom "0 0,6,12,18 * * *"
+bash ~/scripts/setup-update-cron.sh --custom "0 0,6,12,18 * * *"
 
 # Twice daily (2 AM and 2 PM)
-bash ~/bin/setup-update-cron.sh --custom "0 2,14 * * *"
+bash ~/scripts/setup-update-cron.sh --custom "0 2,14 * * *"
 
 # First day of month
-bash ~/bin/setup-update-cron.sh --custom "0 2 1 * *"
+bash ~/scripts/setup-update-cron.sh --custom "0 2 1 * *"
 ```
 
 ### Log Rotation
@@ -280,7 +280,7 @@ grep -c "✓ Updated:" ~/.update-logs/updates.log
 ## File Locations
 
 ```
-~/bin/
+~/scripts/
 ├── system-update.sh          # Main update script
 ├── setup-update-cron.sh      # Cron setup helper
 ├── view-update-logs.sh       # Log viewer
@@ -299,7 +299,7 @@ For issues or questions:
 1. Check logs: `view-update-logs.sh latest`
 2. Review detailed output: `view-update-logs.sh detailed`
 3. Verify cron setup: `crontab -l`
-4. Test manually: `~/bin/system-update.sh`
+4. Test manually: `~/scripts/system-update.sh`
 
 ---
 

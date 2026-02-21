@@ -51,9 +51,9 @@ This repository contains personal automation and utility scripts for macOS syste
 - Log warnings with `⚠` prefix
 
 ## File Locations
-- Scripts are installed to `~/bin/`
+- Scripts are installed to `~/scripts/`
 - Logs are stored in `~/.update-logs/`
-- Cron jobs reference `/Users/ahmadluqman/bin/system-update.sh`
+- Cron jobs reference `/Users/ahmadluqman/scripts/system-update.sh`
 
 ## Common Issues
 

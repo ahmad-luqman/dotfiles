@@ -5,7 +5,7 @@
 
 set -e
 
-SCRIPT_PATH="/Users/ahmadluqman/bin/system-update.sh"
+SCRIPT_PATH="/Users/ahmadluqman/scripts/system-update.sh"
 CRON_SCHEDULE="$2"
 
 # Default to weekly (Sunday 2 AM)
